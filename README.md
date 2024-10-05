@@ -363,3 +363,126 @@ if (response != null && response.body.isNotEmpty) {
 - Mengembalikan Status: Fungsi mengembalikan true jika status penghapusan produk adalah true, sebaliknya mengembalikan false.
 
 ## 3. Proses tampil data 
+![image](https://github.com/user-attachments/assets/1f48b212-aec0-4c55-8956-83f9998e8166)
+#### Kelas ```ProdukDetail```
+Inisialisasi: Kelas ini adalah widget ```Stateful``` yang menerima objek ```Produk``` sebagai parameter melalui konstruktor. Ini memungkinkan detail produk ditampilkan berdasarkan data yang diteruskan.
+```dart
+class ProdukDetail extends StatefulWidget {
+  Produk? produk; // Objek produk yang akan ditampilkan
+
+  ProdukDetail({Key? key, this.produk}) : super(key: key);
+}
+```
+#### Metode ```build```
+Struktur UI: Dalam metode ```build```, UI untuk detail produk dibangun dengan ```Scaffold```, yang berisi ```AppBar``` dan konten utama dalam bentuk kolom. Detail produk ditampilkan menggunakan widget ```Text```, yang mengambil nilai dari atribut objek ```produk```.
+```dart
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('Detail Produk'), // Judul halaman
+    ),
+    body: Center(
+      child: Column(
+        children: [
+          Text("Kode : ${widget.produk!.kodeProduk}", style: const TextStyle(fontSize: 20.0)),
+          Text("Nama : ${widget.produk!.namaProduk}", style: const TextStyle(fontSize: 18.0)),
+          Text("Harga : Rp. ${widget.produk!.hargaProduk.toString()}", style: const TextStyle(fontSize: 18.0)),
+          _tombolHapusEdit() // Menampilkan tombol untuk edit dan hapus
+        ],
+      ),
+    ),
+  );
+}
+```
+#### Metode ```_tombolHapusEdit```
+Tombol Edit dan Hapus: Metode ini menghasilkan dua tombol: satu untuk mengedit produk dan satu lagi untuk menghapusnya. Jika tombol edit ditekan, pengguna akan dinavigasi ke halaman ```ProdukForm``` dengan objek produk yang sama. Jika tombol hapus ditekan, metode ```confirmHapus()``` akan dipanggil.
+```dart
+Widget _tombolHapusEdit() {
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      OutlinedButton(
+        child: const Text("EDIT"),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProdukForm(produk: widget.produk!), // Navigasi ke form edit
+            ),
+          );
+        },
+      ),
+      OutlinedButton(
+        child: const Text("DELETE"),
+        onPressed: () => confirmHapus(), // Konfirmasi hapus
+      ),
+    ],
+  );
+}
+```
+#### Metode ```confirmHapus```
+Konfirmasi Hapus: Metode ini memeriksa apakah ID produk ada. Jika tidak ada, dialog peringatan ditampilkan. Jika ID ada, dialog konfirmasi ditampilkan. Jika pengguna mengonfirmasi, fungsi untuk menghapus produk dipanggil, dan dialog sukses atau peringatan ditampilkan berdasarkan hasil.
+```dart
+void confirmHapus() {
+  if (widget.produk?.id == null) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => const WarningDialog(
+        description: "ID produk tidak ditemukan, tidak bisa menghapus.",
+      ),
+    );
+    return;
+  }
+
+  AlertDialog alertDialog = AlertDialog(
+    content: const Text("Yakin ingin menghapus data ini?"),
+    actions: [
+      OutlinedButton(
+        child: const Text("Ya"),
+        onPressed: () async {
+          bool success = await ProdukBloc.deleteProduk(id: int.parse(widget.produk!.id!));
+          if (success) {
+            showDialog(context: context, builder: (BuildContext context) => SuccessDialog(...)); // Tampilkan dialog sukses
+          } else {
+            showDialog(context: context, builder: (BuildContext context) => const WarningDialog(...)); // Tampilkan dialog gagal
+          }
+        },
+      ),
+      OutlinedButton(
+        child: const Text("Batal"),
+        onPressed: () => Navigator.pop(context), // Menutup dialog
+      ),
+    ],
+  );
+  showDialog(builder: (context) => alertDialog, context: context);
+}
+```
+#### Navigasi dari ```produk_page.dart```
+Navigasi ke Detail Produk: Di kelas ```ProdukPage```, daftar produk ditampilkan menggunakan ```FutureBuilder```. Setiap item dalam daftar adalah widget ItemProduk, yang memiliki onTap untuk menavigasi ke halaman ```ProdukDetail``` dengan objek produk yang sesuai.
+```dart
+class ItemProduk extends StatelessWidget {
+  final Produk produk;
+  const ItemProduk({Key? key, required this.produk}) : super(key: key);
+  
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProdukDetail(produk: produk), // Navigasi ke detail produk
+          ),
+        );
+      },
+      child: Card(
+        child: ListTile(
+          title: Text(produk.namaProduk!),
+          subtitle: Text(produk.hargaProduk.toString()),
+        ),
+      ),
+    );
+  }
+}
+```
