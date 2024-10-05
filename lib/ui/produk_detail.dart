@@ -3,7 +3,9 @@ import 'package:tokokita/bloc/produk_bloc.dart';
 import 'package:tokokita/model/produk.dart';
 import 'package:tokokita/ui/produk_form.dart';
 import 'package:tokokita/ui/produk_page.dart';
+import 'package:tokokita/widget/success_dialog.dart';
 import 'package:tokokita/widget/warning_dialog.dart';
+
 // ignore: must_be_immutable
 class ProdukDetail extends StatefulWidget {
   Produk? produk;
@@ -11,6 +13,7 @@ class ProdukDetail extends StatefulWidget {
   @override
   _ProdukDetailState createState() => _ProdukDetailState();
 }
+
 class _ProdukDetailState extends State<ProdukDetail> {
   @override
   Widget build(BuildContext context) {
@@ -39,6 +42,7 @@ class _ProdukDetailState extends State<ProdukDetail> {
       ),
     );
   }
+
   Widget _tombolHapusEdit() {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -65,32 +69,60 @@ class _ProdukDetailState extends State<ProdukDetail> {
       ],
     );
   }
+
   void confirmHapus() {
+    if (widget.produk?.id == null) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) => const WarningDialog(
+          description: "ID produk tidak ditemukan, tidak bisa menghapus.",
+        ),
+      );
+      return;
+    }
+
     AlertDialog alertDialog = AlertDialog(
       content: const Text("Yakin ingin menghapus data ini?"),
       actions: [
-//tombol hapus
         OutlinedButton(
           child: const Text("Ya"),
-          onPressed: () {
-            ProdukBloc.deleteProduk(id: int.parse(widget.produk!.id!)).then(
-                    (value) => {
-                  Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) => const ProdukPage()))
-                }, onError: (error) {
+          onPressed: () async {
+            // Panggil fungsi deleteProduk dan periksa hasilnya
+            bool success = await ProdukBloc.deleteProduk(
+                id: int.parse(widget.produk!.id!));
+            if (success) {
               showDialog(
-                  context: context,
-                  builder: (BuildContext context) => const WarningDialog(
-                    description: "Hapus gagal, silahkan coba lagi",
-                  ));
-            });
+                context: context,
+                barrierDismissible: false,
+                builder: (BuildContext context) => SuccessDialog(
+                  description: "Produk berhasil dihapus",
+                  okClick: () {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (context) => const ProdukPage(),
+                      ),
+                    );
+                  },
+                ),
+              );
+              // Jika berhasil, navigasi kembali ke halaman ProdukPage
+              // Navigator.of(context).pushReplacement(
+              //     MaterialPageRoute(builder: (context) => const ProdukPage()));
+            } else {
+              // Jika penghapusan gagal
+              showDialog(
+                context: context,
+                builder: (BuildContext context) => const WarningDialog(
+                  description: "Hapus gagal, silahkan coba lagi",
+                ),
+              );
+            }
           },
         ),
-//tombol batal
         OutlinedButton(
           child: const Text("Batal"),
           onPressed: () => Navigator.pop(context),
-        )
+        ),
       ],
     );
     showDialog(builder: (context) => alertDialog, context: context);
