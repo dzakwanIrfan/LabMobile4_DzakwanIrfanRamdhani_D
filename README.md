@@ -72,3 +72,87 @@ static Future<Login> login({String? email, String? password}) async {
   return Login.fromJson(jsonObj);
 }
 ```
+## 2. CRUD Produk
+### Create Produk
+![Screenshot 2024-10-05 142222](https://github.com/user-attachments/assets/2d42d413-f8c6-49bd-800d-5b43c803e682)
+Kode ini terdiri dari dua bagian penting:
+- ProdukBloc: Mengelola interaksi dengan API untuk mendapatkan, menambah, mengubah, dan menghapus produk.
+- ProdukForm: Formulir yang digunakan untuk menambah atau mengubah produk.
+
+#### ```ProdukBloc``` - Menangani Logika API
+```addProduk```: Fungsi ini digunakan untuk menambah produk baru. Data produk seperti kode, nama, dan harga dikirimkan ke endpoint API untuk disimpan di database.
+```dart
+static Future addProduk({Produk? produk}) async {
+  String apiUrl = ApiUrl.createProduk;
+  var body = {
+    "kode_produk": produk!.kodeProduk,
+    "nama_produk": produk.namaProduk,
+    "harga": produk.hargaProduk.toString()
+  };
+  var response = await Api().post(apiUrl, body);
+  var jsonObj = json.decode(response.body);
+  return jsonObj['status'];
+}
+```
+
+#### ```ProdukForm``` - Formulir Produk
+Textbox: Ada tiga ```TextFormField``` untuk memasukkan Kode Produk, Nama Produk, dan Harga Produk. Masing-masing field memiliki validasi untuk memastikan bahwa data diisi dengan benar.
+```dart
+Widget _kodeProdukTextField() {
+  return TextFormField(
+    decoration: const InputDecoration(labelText: "Kode Produk"),
+    controller: _kodeProdukTextboxController,
+    validator: (value) {
+      if (value!.isEmpty) {
+        return "Kode Produk harus diisi";
+      }
+      return null;
+    },
+  );
+}
+```
+Tombol Simpan/Ubah: Tombol ini memeriksa apakah form valid, dan kemudian memanggil fungsi ```simpan()``` jika pengguna menambah produk baru, atau ```ubah()``` jika produk sedang diedit.
+```dart
+Widget _buttonSubmit() {
+  return OutlinedButton(
+      child: Text(tombolSubmit),
+      onPressed: () {
+        var validate = _formKey.currentState!.validate();
+        if (validate) {
+          if (!_isLoading) {
+            if (widget.produk != null) {
+              ubah(); // Update produk
+            } else {
+              simpan(); // Tambah produk baru
+            }
+          }
+        }
+      });
+}
+```
+#### Proses Menambah Produk Baru (```simpan()```)
+Fungsi ini mengambil data dari form, membentuk objek ```Produk```, lalu mengirimkannya ke API melalui fungsi ```addProduk``` di ```ProdukBloc```. Jika berhasil, pengguna akan diarahkan kembali ke halaman produk.
+```dart
+simpan() {
+  setState(() {
+    _isLoading = true;
+  });
+  Produk createProduk = Produk(id: null);
+  createProduk.kodeProduk = _kodeProdukTextboxController.text;
+  createProduk.namaProduk = _namaProdukTextboxController.text;
+  createProduk.hargaProduk = int.parse(_hargaProdukTextboxController.text);
+  ProdukBloc.addProduk(produk: createProduk).then((value) {
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (BuildContext context) => const ProdukPage()));
+  }, onError: (error) {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) => const WarningDialog(
+          description: "Simpan gagal, silahkan coba lagi",
+        ));
+  });
+  setState(() {
+    _isLoading = false;
+  });
+}
+```
