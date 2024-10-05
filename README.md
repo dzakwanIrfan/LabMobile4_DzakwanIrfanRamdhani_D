@@ -277,3 +277,89 @@ class ApiUrl {
 }
 ```
 - updateProduk(int id): Fungsi ini mengembalikan URL untuk update produk, dengan menyertakan ID produk sebagai bagian dari endpoint URL.
+
+### Delete Produk
+![Screenshot 2024-10-05 155743](https://github.com/user-attachments/assets/78f42457-2db9-4861-8670-ad646efdf055)
+![Screenshot 2024-10-05 155841](https://github.com/user-attachments/assets/426a3d86-2ca5-4ab7-8a5f-afa900ae4899)
+#### Penjelasan ```produk_detail.dart```
+Fungsi confirmHapus()
+```dart
+void confirmHapus() {
+    if (widget.produk?.id == null) {
+        showDialog(
+            context: context,
+            builder: (BuildContext context) => const WarningDialog(
+                description: "ID produk tidak ditemukan, tidak bisa menghapus.",
+            ),
+        );
+        return;
+    }
+```
+Pengecekan ID Produk: Fungsi ini pertama-tama memeriksa apakah id dari produk yang ingin dihapus ada. Jika tidak ada, ditampilkan dialog peringatan yang menyatakan bahwa ID tidak ditemukan.
+dart
+```dart
+AlertDialog alertDialog = 
+AlertDialog(
+    content: const Text("Yakin ingin menghapus data ini?"),
+    actions: [
+        OutlinedButton(
+            child: const Text("Ya"),
+            onPressed: () async {
+                // Panggil fungsi deleteProduk dan periksa hasilnya
+                bool success = await ProdukBloc.deleteProduk(
+                    id: int.parse(widget.produk!.id!));
+```
+Dialog Konfirmasi: Jika ID produk valid, dialog konfirmasi akan muncul untuk menanyakan pengguna apakah mereka yakin ingin menghapus produk. Jika pengguna memilih "Ya", fungsi deleteProduk dipanggil.
+```dart
+if (success) {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) => SuccessDialog(
+            description: "Produk berhasil dihapus",
+            okClick: () {
+                Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                        builder: (context) => const ProdukPage(),
+                    ),
+                );
+            },
+        ),
+    );
+```
+Menangani Respons Berhasil: Jika produk berhasil dihapus (success bernilai true), dialog sukses ditampilkan, dan pengguna diarahkan kembali ke halaman ProdukPage.
+```dart
+else {
+    // Jika penghapusan gagal
+    showDialog(
+        context: context,
+        builder: (BuildContext context) => const WarningDialog(
+            description: "Hapus gagal, silahkan coba lagi",
+        ),
+    );
+}
+```
+Menangani Respons Gagal: Jika penghapusan produk gagal, dialog peringatan ditampilkan untuk memberitahu pengguna.
+
+#### Penjelasan ```produk_bloc.dart```
+Fungsi deleteProduk()
+```dart
+static Future<bool> deleteProduk({int? id}) async {
+    String apiUrl = ApiUrl.deleteProduk(id!);
+    var response = await Api().delete(apiUrl);
+```
+URL API: Fungsi ini membangun URL untuk permintaan penghapusan berdasarkan ID produk yang diterima sebagai parameter.
+Permintaan API: Fungsi ini kemudian mengirim permintaan DELETE ke API menggunakan metode delete dari kelas Api.
+```dart
+if (response != null && response.body.isNotEmpty) {
+    var jsonObj = json.decode(response.body);
+    // Periksa status dan kembalikan true jika status adalah true
+    return jsonObj['status'] == true; // Atau bisa juga cek jsonObj['status'] as bool
+} else {
+    return false; // Jika respons tidak sesuai
+}
+```
+- Memproses Respons: Setelah menerima respons, fungsi ini memeriksa apakah respons valid dan tidak kosong. Jika valid, respons di-decode dari format JSON.
+- Mengembalikan Status: Fungsi mengembalikan true jika status penghapusan produk adalah true, sebaliknya mengembalikan false.
+
+## 3. Proses tampil data 
