@@ -4,11 +4,15 @@ import 'package:tokokita/helpers/user_info.dart';
 import 'package:tokokita/ui/produk_page.dart';
 import 'package:tokokita/ui/registrasi_page.dart';
 import 'package:tokokita/widget/warning_dialog.dart';
+
+import '../widget/success_dialog.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
   @override
   _LoginPageState createState() => _LoginPageState();
 }
+
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
@@ -41,6 +45,7 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
+
 //Membuat Textbox email
   Widget _emailTextField() {
     return TextFormField(
@@ -56,6 +61,7 @@ class _LoginPageState extends State<LoginPage> {
       },
     );
   }
+
 //Membuat Textbox password
   Widget _passwordTextField() {
     return TextFormField(
@@ -72,6 +78,7 @@ class _LoginPageState extends State<LoginPage> {
       },
     );
   }
+
 //Membuat Tombol Login
 //Membuat Tombol Login
   Widget _buttonLogin() {
@@ -84,6 +91,7 @@ class _LoginPageState extends State<LoginPage> {
           }
         });
   }
+
   void _submit() {
     _formKey.currentState!.save();
     setState(() {
@@ -91,9 +99,9 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     LoginBloc.login(
-        email: _emailTextboxController.text,
-        password: _passwordTextboxController.text
-    ).then((value) async {
+            email: _emailTextboxController.text,
+            password: _passwordTextboxController.text)
+        .then((value) async {
       if (value.code == 200) {
         // Pastikan bahwa value.token tidak null, jika null gunakan string kosong sebagai default
         await UserInfo().setToken(value.token ?? "");
@@ -101,15 +109,35 @@ class _LoginPageState extends State<LoginPage> {
         // Pastikan bahwa value.userID dapat diubah menjadi int
         await UserInfo().setUserID(int.tryParse(value.userID.toString()) ?? 0);
 
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (context) => const ProdukPage()));
+        // Navigator.pushReplacement(
+        //   context,
+        //   MaterialPageRoute(
+        //     builder: (context) => const ProdukPage(),
+        //   ),
+        // );
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) => SuccessDialog(
+            description: "Login berhasil",
+            okClick: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProdukPage(),
+                ),
+              );
+            },
+          ),
+        );
       } else {
         showDialog(
             context: context,
             barrierDismissible: false,
             builder: (BuildContext context) => const WarningDialog(
-              description: "Login gagal, silahkan coba lagi",
-            ));
+                  description: "Login gagal, silahkan coba lagi",
+                ));
       }
     }, onError: (error) {
       print(error);
@@ -117,8 +145,8 @@ class _LoginPageState extends State<LoginPage> {
           context: context,
           barrierDismissible: false,
           builder: (BuildContext context) => const WarningDialog(
-            description: "Login gagal, silahkan coba lagi",
-          ));
+                description: "Login gagal, silahkan coba lagi",
+              ));
     });
 
     setState(() {
@@ -138,9 +166,7 @@ class _LoginPageState extends State<LoginPage> {
           Navigator.push(context,
               MaterialPageRoute(builder: (context) => const RegistrasiPage()));
         },
-      )
-      ,
-    )
-    ;
+      ),
+    );
   }
 }
