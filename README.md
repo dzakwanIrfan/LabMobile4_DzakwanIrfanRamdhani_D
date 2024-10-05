@@ -1,24 +1,74 @@
-# tokokita
+# Tugas Praktikum Mobile Pertemuan 5
+## 1. Proses Login
+### a. Screenshot form dan isi form
+![Screenshot 2024-10-05 134429](https://github.com/user-attachments/assets/2ef94dc8-976b-456b-a402-623f918ff6c0)
+### b. SS PopUp Berhasil/Tidak
+![Screenshot 2024-10-05 135335](https://github.com/user-attachments/assets/93bee333-e187-49ce-85a7-caf5bd734fc5)
+Ada dua komponen utama:
+#### _buttonLogin(): Tombol yang memicu validasi formulir dan memanggil API login.
+```dart
+Widget _buttonLogin() {
+  return ElevatedButton(
+    child: const Text("Login"),
+    onPressed: () {
+      var validate = _formKey.currentState!.validate();
+      if (validate) {
+        if (!_isLoading) _submit();
+      }
+    },
+  );
+}
+```
 
-Praktikum Mobile Pertemuan 4
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-
-# Screenshot
-
-![WhatsApp Image 2024-09-27 at 09 02 15_ff92c4f9](https://github.com/user-attachments/assets/becaa4d4-7843-4e65-9ade-8baf058cd987)
-![WhatsApp Image 2024-09-27 at 09 02 15_064b576b](https://github.com/user-attachments/assets/c080ca0a-fcd7-4cb0-991b-dd2e5245c2fc)
-![WhatsApp Image 2024-09-27 at 09 02 15_8aa19725](https://github.com/user-attachments/assets/832106cd-454a-4715-b534-8c0aacd8ef0c)
-![WhatsApp Image 2024-09-27 at 09 02 14_e6a082a2](https://github.com/user-attachments/assets/92315a02-393f-42fe-a648-fb70a4d17128)
-![WhatsApp Image 2024-09-27 at 09 02 13_9d19648d](https://github.com/user-attachments/assets/25da178f-4315-416b-8b6d-e43e3b0b19d8)
+#### _submit(): Mengirimkan formulir login, memanggil metode LoginBloc.login(), dan menangani respons (baik keberhasilan atau kegagalan).
+Metode _submit() menggunakan LoginBloc untuk memproses login:
+``` dart
+void _submit() {
+  setState(() {
+    _isLoading = true;
+  });
+  LoginBloc.login(
+    email: _emailTextboxController.text,
+    password: _passwordTextboxController.text,
+  ).then((value) async {
+    if (value.code == 200) {
+      await UserInfo().setToken(value.token ?? "");
+      await UserInfo().setUserID(int.tryParse(value.userID.toString()) ?? 0);
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) => SuccessDialog(
+          description: "Login berhasil",
+          okClick: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const ProdukPage()),
+            );
+          },
+        ),
+      );
+    } else {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) => const WarningDialog(
+          description: "Login gagal, silahkan coba lagi",
+        ),
+      );
+    }
+  });
+  setState(() {
+    _isLoading = false;
+  });
+}
+```
+Pada ```login_bloc.dart``` mengelola proses login dengan mengirimkan permintaan ke API dan memparsing responsnya.
+```dart
+static Future<Login> login({String? email, String? password}) async {
+  String apiUrl = ApiUrl.login;
+  var body = {"email": email, "password": password};
+  var response = await Api().post(apiUrl, body);
+  var jsonObj = json.decode(response.body);
+  return Login.fromJson(jsonObj);
+}
+```
