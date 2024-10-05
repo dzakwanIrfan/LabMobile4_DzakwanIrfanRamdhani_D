@@ -156,3 +156,124 @@ simpan() {
   });
 }
 ```
+
+### Read Produk
+![Screenshot 2024-10-05 153749](https://github.com/user-attachments/assets/5e56be1a-0b3e-444b-8737-043d1b35f873)
+#### FutureBuilder<List>
+```dart
+body: FutureBuilder<List>(
+  future: ProdukBloc.getProduks(),
+  builder: (context, snapshot) {
+    if (snapshot.hasError) print(snapshot.error);
+    return snapshot.hasData
+        ? ListProduk(list: snapshot.data)
+        : const Center(child: CircularProgressIndicator());
+  },
+),
+```
+- FutureBuilder: Widget ini digunakan untuk menampilkan UI berdasarkan hasil dari operasi asynchronous (seperti pengambilan data dari API).
+- future: Ini menunjuk ke fungsi ```ProdukBloc.getProduks()```, yang akan mengembalikan daftar produk secara asynchronous.
+- snapshot: Representasi dari hasil yang diterima dari ```future```. Jika data sudah siap (berhasil diambil), ```snapshot.hasData``` akan bernilai ```true``` dan akan memanggil widget ```ListProduk```. Jika data belum tersedia, ```CircularProgressIndicator``` (loading spinner) akan ditampilkan.
+- Error Handling: Jika ada error dalam pengambilan data, kita memeriksa dengan snapshot.hasError dan mencetak error-nya.
+
+#### ListProduk
+```dart
+class ListProduk extends StatelessWidget {
+  final List? list;
+  const ListProduk({Key? key, this.list}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: list == null ? 0 : list!.length,
+      itemBuilder: (context, i) {
+        return ItemProduk(produk: list![i]);
+      },
+    );
+  }
+}
+```
+- ListProduk: Ini adalah widget yang bertanggung jawab untuk menampilkan daftar produk menggunakan ```ListView.builder()```.
+- list: Menerima data produk dari ```FutureBuilder``` dalam bentuk daftar (List) dan menampilkan produk satu per satu.
+- ListView.builder: Widget ini efisien untuk menampilkan daftar data dalam jumlah besar.
+- --itemCount: Menentukan berapa banyak item yang akan ditampilkan (sesuai jumlah produk dalam daftar).
+- --itemBuilder: Digunakan untuk membuat widget yang menampilkan setiap produk, dalam hal ini memanggil widget ItemProduk.
+
+### Update Produk
+![Screenshot 2024-10-05 154157](https://github.com/user-attachments/assets/d9d4d69e-512d-438e-9e5c-a9f505cba35f)
+#### Fungsi ```updateProduk``` di ```ProdukBloc```
+```dart
+static Future updateProduk({required Produk produk}) async {
+  String apiUrl = ApiUrl.updateProduk(int.parse(produk.id!));
+  print(apiUrl);
+  var body = {
+    "kode_produk": produk.kodeProduk,
+    "nama_produk": produk.namaProduk,
+    "harga": produk.hargaProduk.toString()
+  };
+  print("Body : $body");
+  var response = await Api().put(apiUrl, jsonEncode(body));
+  var jsonObj = json.decode(response.body);
+  return jsonObj['status'];
+}
+```
+- updateProduk: Fungsi ini digunakan untuk melakukan update produk di server melalui HTTP PUT request.
+- apiUrl: URL API diambil dari ```ApiUrl.updateProduk```, di mana ```produk.id``` digunakan untuk membangun URL endpoint yang spesifik untuk produk yang ingin diperbarui.
+- body: Membuat data yang akan dikirim ke server dalam format JSON, berisi ```kode_produk```, ```nama_produk```, dan ```harga``` dari produk yang akan di-update. Data ini dikonversi menjadi string JSON menggunakan ```jsonEncode(body)```.
+- response: Mengirimkan HTTP PUT request menggunakan method ```Api().put()``` dengan ```apiUrl``` dan body JSON sebagai argumen.
+- jsonObj: Merupakan respons JSON yang diterima dari server, yang berisi status apakah update berhasil atau tidak.
+
+#### Menggunakan Fungsi updateProduk pada UI
+```dart
+IconButton(
+  icon: const Icon(Icons.edit),
+  onPressed: () async {
+    // Pindah ke halaman form produk dengan produk yang dipilih
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ProdukForm(produk: produk)),
+    );
+  },
+),
+```
+- IconButton: Digunakan sebagai tombol untuk memulai proses update, biasanya dalam bentuk ikon edit (pensil).
+- Navigator.push: Navigasi ke halaman form produk (```ProdukForm```) sambil membawa objek ```produk``` yang ingin di-edit. Dalam form tersebut, user dapat melakukan perubahan pada data produk.
+
+#### Update dari Form Produk
+```dart
+ElevatedButton(
+  onPressed: () async {
+    // Mengambil data produk yang di-edit dari form
+    var updatedProduk = Produk(
+      id: produk.id,
+      kodeProduk: kodeProdukController.text,
+      namaProduk: namaProdukController.text,
+      hargaProduk: double.parse(hargaController.text),
+    );
+    // Memanggil fungsi updateProduk dari ProdukBloc
+    var status = await ProdukBloc.updateProduk(produk: updatedProduk);
+
+    if (status == "success") {
+      // Tampilkan pesan sukses dan navigasi kembali ke halaman sebelumnya
+      Navigator.pop(context, 'Produk berhasil diperbarui!');
+    } else {
+      // Tampilkan pesan error jika update gagal
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal memperbarui produk')),
+      );
+    }
+  },
+  child: const Text('Update Produk'),
+),
+```
+- updatedProduk: Objek ```Produk``` baru yang diperbarui dengan data dari controller (form input).
+- updateProduk: Fungsi ini dipanggil dengan parameter ```updatedProduk``` untuk mengirim data ke server.
+- status: Jika update berhasil, kita menampilkan pesan sukses dan kembali ke halaman sebelumnya menggunakan ```Navigator.pop()```. Jika gagal, kita menampilkan pesan error menggunakan ```SnackBar```.
+
+#### API URL untuk Update Produk
+```dart
+class ApiUrl {
+  static String updateProduk(int id) => "https://example.com/api/produk/update/$id";
+}
+```
+- updateProduk(int id): Fungsi ini mengembalikan URL untuk update produk, dengan menyertakan ID produk sebagai bagian dari endpoint URL.
